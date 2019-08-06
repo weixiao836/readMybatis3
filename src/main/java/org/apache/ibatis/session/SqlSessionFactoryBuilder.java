@@ -26,6 +26,13 @@ import org.apache.ibatis.executor.ErrorContext;
 import org.apache.ibatis.session.defaults.DefaultSqlSessionFactory;
 
 /**
+ * 这个类可以被实例化、使用和丢弃，一旦创建了 SqlSessionFactory，就不再需要它了。 因此 SqlSessionFactoryBuilder 实例的最佳作用域是方法作用域（也就是局部方法变量）。
+ * 你可以重用 SqlSessionFactoryBuilder 来创建多个 SqlSessionFactory 实例，
+ * 但是最好还是不要让其一直存在，以保证所有的 XML 解析资源可以被释放给更重要的事情。
+ *
+ * SqlSessionFactoryBuilder 采用builder模式去构建sqlSessionFactory
+ * 并委托XMLConfigBuilder类去解析XML配置信息
+ *
  * Builds {@link SqlSession} instances.
  *
  * @author Clinton Begin
@@ -36,6 +43,7 @@ public class SqlSessionFactoryBuilder {
     return build(reader, null, null);
   }
 
+
   public SqlSessionFactory build(Reader reader, String environment) {
     return build(reader, environment, null);
   }
@@ -43,7 +51,16 @@ public class SqlSessionFactoryBuilder {
   public SqlSessionFactory build(Reader reader, Properties properties) {
     return build(reader, null, properties);
   }
-
+  /**
+   *
+   * @param reader
+   * @param environment MyBatis 可以配置成适应多种环境，这种机制有助于将 SQL 映射应用于多种数据库之中
+   *         现实情况下有多种理由需要这么做。例如，开发、测试和生产环境需要有不同的配置；
+   *         或者想在具有相同 Schema 的多个生产数据库中 使用相同的 SQL 映射。有许多类似的使用场景。
+   *         尽管可以配置多个环境，但每个 SqlSessionFactory 实例只能选择一种环境。
+   * @param properties
+   * @return
+   */
   public SqlSessionFactory build(Reader reader, String environment, Properties properties) {
     try {
       XMLConfigBuilder parser = new XMLConfigBuilder(reader, environment, properties);
@@ -88,6 +105,11 @@ public class SqlSessionFactoryBuilder {
     }
   }
 
+  /**
+   * 不使用 XML 构建 SqlSessionFactory，而通过Java Config方式构建时使用
+   * @param config
+   * @return
+   */
   public SqlSessionFactory build(Configuration config) {
     return new DefaultSqlSessionFactory(config);
   }
