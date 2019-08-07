@@ -33,6 +33,8 @@ import org.apache.ibatis.session.defaults.DefaultSqlSessionFactory;
  * SqlSessionFactoryBuilder 采用builder模式去构建sqlSessionFactory
  * 并委托XMLConfigBuilder类去解析XML配置信息
  *
+ * builder模式是一步一步创建一个复杂的对象，它允许用户只通过指定复杂对象的类型和内容就可以构建它们，用户不需要知道内部的具体构建细节。
+ *
  * Builds {@link SqlSession} instances.
  *
  * @author Clinton Begin
