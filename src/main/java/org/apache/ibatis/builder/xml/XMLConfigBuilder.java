@@ -47,7 +47,8 @@ import org.apache.ibatis.transaction.TransactionFactory;
 import org.apache.ibatis.type.JdbcType;
 
 /**
- * XMLConfigBuilder 是具体解析XML配置文件的类，集成了抽象类BaseBuilder
+ * XMLConfigBuilder 是具体解析XML配置文件的类，继承了抽象类BaseBuilder
+ * XMLConfigBuilder通过builder模式隐藏了解析XML配置文件的细节，并返回Configuration对象信息
  * @author Clinton Begin
  * @author Kazuki Shimizu
  */

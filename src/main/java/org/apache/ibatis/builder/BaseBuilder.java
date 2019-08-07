@@ -29,6 +29,7 @@ import org.apache.ibatis.type.TypeHandler;
 import org.apache.ibatis.type.TypeHandlerRegistry;
 
 /**
+ *
  * @author Clinton Begin
  */
 public abstract class BaseBuilder {
