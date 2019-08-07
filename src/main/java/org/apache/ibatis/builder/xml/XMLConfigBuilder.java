@@ -47,6 +47,7 @@ import org.apache.ibatis.transaction.TransactionFactory;
 import org.apache.ibatis.type.JdbcType;
 
 /**
+ * XMLConfigBuilder 是具体解析XML配置文件的类，集成了抽象类BaseBuilder
  * @author Clinton Begin
  * @author Kazuki Shimizu
  */
@@ -81,20 +82,34 @@ public class XMLConfigBuilder extends BaseBuilder {
     this(new XPathParser(inputStream, true, props, new XMLMapperEntityResolver()), environment, props);
   }
 
+  /**
+   * 初始化XMLConfigBuilder
+   * @param parser
+   * @param environment
+   * @param props
+   */
   private XMLConfigBuilder(XPathParser parser, String environment, Properties props) {
+    //初始化配置对象
     super(new Configuration());
     ErrorContext.instance().resource("SQL Mapper Configuration");
+    //TODO 后期查看该方法作用
     this.configuration.setVariables(props);
+    //设置是否解析标记
     this.parsed = false;
     this.environment = environment;
     this.parser = parser;
   }
 
+  /**
+   * 在SqlSessionFactoryBuilder的build方法中被调用
+   * @return
+   */
   public Configuration parse() {
     if (parsed) {
       throw new BuilderException("Each XMLConfigBuilder can only be used once.");
     }
     parsed = true;
+    //获取root标签configuration
     parseConfiguration(parser.evalNode("/configuration"));
     return configuration;
   }
@@ -102,20 +117,34 @@ public class XMLConfigBuilder extends BaseBuilder {
   private void parseConfiguration(XNode root) {
     try {
       //issue #117 read properties first
+      //解析Properties标签
       propertiesElement(root.evalNode("properties"));
+      //解析setting并设置为Properties
       Properties settings = settingsAsProperties(root.evalNode("settings"));
+      //指定虚拟文件系统
       loadCustomVfs(settings);
+      //指定 MyBatis 所用日志的具体实现
       loadCustomLogImpl(settings);
+      //解析类型别名
       typeAliasesElement(root.evalNode("typeAliases"));
+      //解析插件配置
       pluginElement(root.evalNode("plugins"));
+      //解析对象工厂
       objectFactoryElement(root.evalNode("objectFactory"));
+      //TODO 文档中暂未找到相关说明
       objectWrapperFactoryElement(root.evalNode("objectWrapperFactory"));
+      //TODO 文档中暂未找到相关说明
       reflectorFactoryElement(root.evalNode("reflectorFactory"));
+      //将setting中的配置写入configuration中
       settingsElement(settings);
       // read it after objectFactory and objectWrapperFactory issue #631
+      //解析environments配置
       environmentsElement(root.evalNode("environments"));
+      //解析数据库厂商标识
       databaseIdProviderElement(root.evalNode("databaseIdProvider"));
+      //解析类型处理器
       typeHandlerElement(root.evalNode("typeHandlers"));
+      //解析mappers映射器
       mapperElement(root.evalNode("mappers"));
     } catch (Exception e) {
       throw new BuilderException("Error parsing SQL Mapper Configuration. Cause: " + e, e);
@@ -137,6 +166,12 @@ public class XMLConfigBuilder extends BaseBuilder {
     return props;
   }
 
+  /**
+   * 虚拟文件系统(VFS),用来读取服务器里的资源
+   * 加载自定义虚拟文件系统
+   * @param props
+   * @throws ClassNotFoundException
+   */
   private void loadCustomVfs(Properties props) throws ClassNotFoundException {
     String value = props.getProperty("vfsImpl");
     if (value != null) {
@@ -160,9 +195,15 @@ public class XMLConfigBuilder extends BaseBuilder {
     if (parent != null) {
       for (XNode child : parent.getChildren()) {
         if ("package".equals(child.getName())) {
+          /**
+           * 如果子节点是一个包，则扫描该包下面的类
+           */
           String typeAliasPackage = child.getStringAttribute("name");
           configuration.getTypeAliasRegistry().registerAliases(typeAliasPackage);
         } else {
+          /**
+           * 获取alias和type节点内容并通过反射获取class信息
+           */
           String alias = child.getStringAttribute("alias");
           String type = child.getStringAttribute("type");
           try {
@@ -183,8 +224,11 @@ public class XMLConfigBuilder extends BaseBuilder {
   private void pluginElement(XNode parent) throws Exception {
     if (parent != null) {
       for (XNode child : parent.getChildren()) {
+        //获取interceptor类名
         String interceptor = child.getStringAttribute("interceptor");
+        //将参数信息转换成Properties
         Properties properties = child.getChildrenAsProperties();
+        //将interceptor注册进入typeAliases中并实例化
         Interceptor interceptorInstance = (Interceptor) resolveClass(interceptor).getDeclaredConstructor().newInstance();
         interceptorInstance.setProperties(properties);
         configuration.addInterceptor(interceptorInstance);
@@ -192,6 +236,13 @@ public class XMLConfigBuilder extends BaseBuilder {
     }
   }
 
+  /**
+   * <objectFactory type="org.mybatis.example.ExampleObjectFactory">
+   *   <property name="someProperty" value="100"/>
+   * </objectFactory>
+   * @param context
+   * @throws Exception
+   */
   private void objectFactoryElement(XNode context) throws Exception {
     if (context != null) {
       String type = context.getStringAttribute("type");
@@ -276,7 +327,9 @@ public class XMLConfigBuilder extends BaseBuilder {
       }
       for (XNode child : context.getChildren()) {
         String id = child.getStringAttribute("id");
+        //判断id是否对应当前环境
         if (isSpecifiedEnvironment(id)) {
+          //获取事务管理器和数据源
           TransactionFactory txFactory = transactionManagerElement(child.evalNode("transactionManager"));
           DataSourceFactory dsFactory = dataSourceElement(child.evalNode("dataSource"));
           DataSource dataSource = dsFactory.getDataSource();
@@ -333,10 +386,12 @@ public class XMLConfigBuilder extends BaseBuilder {
   private void typeHandlerElement(XNode parent) {
     if (parent != null) {
       for (XNode child : parent.getChildren()) {
+        //如果配置了包名，则扫描该包下的类
         if ("package".equals(child.getName())) {
           String typeHandlerPackage = child.getStringAttribute("name");
           typeHandlerRegistry.register(typeHandlerPackage);
         } else {
+          //获取类信息并进行注册
           String javaTypeName = child.getStringAttribute("javaType");
           String jdbcTypeName = child.getStringAttribute("jdbcType");
           String handlerTypeName = child.getStringAttribute("handler");
@@ -360,24 +415,29 @@ public class XMLConfigBuilder extends BaseBuilder {
   private void mapperElement(XNode parent) throws Exception {
     if (parent != null) {
       for (XNode child : parent.getChildren()) {
+        //如果配置了包名，则扫描该包下的类
         if ("package".equals(child.getName())) {
           String mapperPackage = child.getStringAttribute("name");
           configuration.addMappers(mapperPackage);
         } else {
+
           String resource = child.getStringAttribute("resource");
           String url = child.getStringAttribute("url");
           String mapperClass = child.getStringAttribute("class");
           if (resource != null && url == null && mapperClass == null) {
+            //如果有resource标签，则进一步委托mapperParser解析对应的resource资源文件
             ErrorContext.instance().resource(resource);
             InputStream inputStream = Resources.getResourceAsStream(resource);
             XMLMapperBuilder mapperParser = new XMLMapperBuilder(inputStream, configuration, resource, configuration.getSqlFragments());
             mapperParser.parse();
           } else if (resource == null && url != null && mapperClass == null) {
+            //如果有url标签，则进一步委托mapperParser解析对应的resource资源文件
             ErrorContext.instance().resource(url);
             InputStream inputStream = Resources.getUrlAsStream(url);
             XMLMapperBuilder mapperParser = new XMLMapperBuilder(inputStream, configuration, url, configuration.getSqlFragments());
             mapperParser.parse();
           } else if (resource == null && url == null && mapperClass != null) {
+            //如果有class标签，直接加载类信息并添加到Mapper集合中
             Class<?> mapperInterface = Resources.classForName(mapperClass);
             configuration.addMapper(mapperInterface);
           } else {
