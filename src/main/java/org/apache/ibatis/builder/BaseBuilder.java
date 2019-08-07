@@ -29,7 +29,7 @@ import org.apache.ibatis.type.TypeHandler;
 import org.apache.ibatis.type.TypeHandlerRegistry;
 
 /**
- *
+ * 基础构建器， 封装了解析配置文件中常用的加载类、类型转换等操作
  * @author Clinton Begin
  */
 public abstract class BaseBuilder {

@@ -1,1 +1,5 @@
 MyBatis 3.5.3-SNAPSHOT版本的源码阅读笔记
+
+
+Mybatis执行流程
+1. 通过SqlSessionFactoryBuilder读取配置文件信息，委托XMLConfigBuilder解析配置文件生成Configuration来构建SqlSessionFactory
