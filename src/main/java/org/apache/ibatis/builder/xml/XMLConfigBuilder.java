@@ -427,6 +427,7 @@ public class XMLConfigBuilder extends BaseBuilder {
           String mapperClass = child.getStringAttribute("class");
           if (resource != null && url == null && mapperClass == null) {
             //如果有resource标签，则进一步委托mapperParser解析对应的resource资源文件
+            // TODO 这里的ErrorContext是起什么作用，回头在看！！
             ErrorContext.instance().resource(resource);
             InputStream inputStream = Resources.getResourceAsStream(resource);
             XMLMapperBuilder mapperParser = new XMLMapperBuilder(inputStream, configuration, resource, configuration.getSqlFragments());

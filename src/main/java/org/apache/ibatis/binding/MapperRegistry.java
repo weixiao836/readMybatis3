@@ -58,6 +58,7 @@ public class MapperRegistry {
   }
 
   public <T> void addMapper(Class<T> type) {
+    //mapper只能是接口
     if (type.isInterface()) {
       if (hasMapper(type)) {
         throw new BindingException("Type " + type + " is already known to the MapperRegistry.");
@@ -72,6 +73,7 @@ public class MapperRegistry {
         parser.parse();
         loadCompleted = true;
       } finally {
+        //如果解析没完成则移除，确保已经添加的mapper是正确的
         if (!loadCompleted) {
           knownMappers.remove(type);
         }

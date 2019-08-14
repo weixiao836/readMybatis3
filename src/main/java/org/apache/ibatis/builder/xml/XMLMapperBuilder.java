@@ -90,12 +90,13 @@ public class XMLMapperBuilder extends BaseBuilder {
   }
 
   public void parse() {
+    //通过set<String> 集合loadedResources 来判断是否已经加载过资源，如果没有则执行加载流程
     if (!configuration.isResourceLoaded(resource)) {
       configurationElement(parser.evalNode("/mapper"));
       configuration.addLoadedResource(resource);
       bindMapperForNamespace();
     }
-
+    //如果有未解析完成的则继续解析
     parsePendingResultMaps();
     parsePendingCacheRefs();
     parsePendingStatements();
@@ -117,6 +118,7 @@ public class XMLMapperBuilder extends BaseBuilder {
       parameterMapElement(context.evalNodes("/mapper/parameterMap"));
       resultMapElements(context.evalNodes("/mapper/resultMap"));
       sqlElement(context.evalNodes("/mapper/sql"));
+      //解析增删改查语句标签
       buildStatementFromContext(context.evalNodes("select|insert|update|delete"));
     } catch (Exception e) {
       throw new BuilderException("Error parsing Mapper XML. The XML location is '" + resource + "'. Cause: " + e, e);
@@ -141,6 +143,9 @@ public class XMLMapperBuilder extends BaseBuilder {
     }
   }
 
+  /**
+   *  解析ResultMap标签
+   */
   private void parsePendingResultMaps() {
     Collection<ResultMapResolver> incompleteResultMaps = configuration.getIncompleteResultMaps();
     synchronized (incompleteResultMaps) {
@@ -186,6 +191,11 @@ public class XMLMapperBuilder extends BaseBuilder {
     }
   }
 
+  /**
+   *  <cache-ref namespace="com.someone.application.data.SomeMapper"/>
+   *  cache-ref作用是在多个命名空间中共享相同的缓存配置和实例
+   * @param context
+   */
   private void cacheRefElement(XNode context) {
     if (context != null) {
       configuration.addCacheRef(builderAssistant.getCurrentNamespace(), context.getStringAttribute("namespace"));
@@ -198,17 +208,28 @@ public class XMLMapperBuilder extends BaseBuilder {
     }
   }
 
+  /**
+   * <cache
+   *   eviction="FIFO"
+   *   flushInterval="60000"
+   *   size="512"
+   *   readOnly="true"/>
+   * @param context
+   */
   private void cacheElement(XNode context) {
     if (context != null) {
       String type = context.getStringAttribute("type", "PERPETUAL");
       Class<? extends Cache> typeClass = typeAliasRegistry.resolveAlias(type);
+      //缓存类型 默认为最近最少使用：移除最长时间不被使用的对象
       String eviction = context.getStringAttribute("eviction", "LRU");
       Class<? extends Cache> evictionClass = typeAliasRegistry.resolveAlias(eviction);
+
       Long flushInterval = context.getLongAttribute("flushInterval");
       Integer size = context.getIntAttribute("size");
       boolean readWrite = !context.getBooleanAttribute("readOnly", false);
       boolean blocking = context.getBooleanAttribute("blocking", false);
       Properties props = context.getChildrenAsProperties();
+      //注册缓存信息
       builderAssistant.useNewCache(typeClass, evictionClass, flushInterval, size, readWrite, blocking, props);
     }
   }
@@ -263,6 +284,7 @@ public class XMLMapperBuilder extends BaseBuilder {
     if (typeClass == null) {
       typeClass = inheritEnclosingType(resultMapNode, enclosingType);
     }
+    //鉴别器
     Discriminator discriminator = null;
     List<ResultMapping> resultMappings = new ArrayList<>();
     resultMappings.addAll(additionalResultMappings);
@@ -284,8 +306,10 @@ public class XMLMapperBuilder extends BaseBuilder {
             resultMapNode.getValueBasedIdentifier());
     String extend = resultMapNode.getStringAttribute("extends");
     Boolean autoMapping = resultMapNode.getBooleanAttribute("autoMapping");
+
     ResultMapResolver resultMapResolver = new ResultMapResolver(builderAssistant, id, typeClass, extend, discriminator, resultMappings, autoMapping);
     try {
+      //如果resultMap有继承关系，则抛出IncompleteElementException并加入到未完成的集合中，供后续继续解析
       return resultMapResolver.resolve();
     } catch (IncompleteElementException  e) {
       configuration.addIncompleteResultMap(resultMapResolver);
